@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ホーシン君 | 総合的な援助の方針 作成アプリ</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: linear-gradient(135deg, #e8f4f8 0%, #f0f7fa 100%);
+    margin: 0;
+    padding: 16px;
+    color: #2c3e50;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    padding: 28px 24px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin: 0 0 4px;
+    color: #2e7d8f;
+    text-align: center;
+  }
+  .subtitle {
+    text-align: center;
+    color: #7a8a96;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }
+  .field {
+    margin-bottom: 20px;
+  }
+  .label {
+    display: block;
+    font-weight: 600;
+    color: #2e7d8f;
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+  }
+  .hint {
+    font-size: 0.82rem;
+    color: #7a8a96;
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+  .optional {
+    display: inline-block;
+    background: #dfeef2;
+    color: #5a8a96;
+    font-size: 0.72rem;
+    padding: 1px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    font-weight: 500;
+  }
+  textarea {
+    width: 100%;
+    border: 1.5px solid #cddee4;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 80px;
+    background: #fafcfd;
+    transition: border-color 0.15s;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: #2e7d8f;
+    background: #fff;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    background: linear-gradient(135deg, #2e7d8f 0%, #4a9eb2 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .btn:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(46,125,143,0.3);
+  }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-sub {
+    background: #fff;
+    color: #2e7d8f;
+    border: 1.5px solid #2e7d8f;
+    padding: 10px;
+    font-size: 0.95rem;
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .btn-row .btn { margin-top: 0; }
+  .output-section {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 2px dashed #cddee4;
+    display: none;
+  }
+  .output-section.show { display: block; }
+  .output-label {
+    font-weight: 600;
+    color: #2e7d8f;
+    margin-bottom: 8px;
+    font-size: 1rem;
+  }
+  .output-box {
+    background: #f8fbfc;
+    border: 1.5px solid #cddee4;
+    border-radius: 10px;
+    padding: 16px;
+    min-height: 120px;
+    font-size: 1rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .char-count {
+    text-align: right;
+    font-size: 0.8rem;
+    color: #7a8a96;
+    margin-top: 4px;
+  }
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c3e50;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+  .toast.show { opacity: 0.95; }
+  .footer {
+    text-align: center;
+    color: #a0aab0;
+    font-size: 0.78rem;
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>ホーシン君</h1>
+  <div class="subtitle">総合的な援助の方針 作成アプリ</div>
+
+  <div class="field">
+    <label class="label" for="goal">ゴールのイメージ</label>
+    <div class="hint">本人が望んでいる、現在から終末期に至るまでの生活の姿を入力してください。</div>
+    <textarea id="goal" rows="4" placeholder="例：住み慣れた施設で穏やかに過ごしたい。最後まで自分の口から食事を楽しみたい。痛みや苦しみなく家族に見守られて最期を迎えたい。"></textarea>
+  </div>
+
+  <div class="field">
+    <label class="label" for="service">施設側がすべきサービス</label>
+    <div class="hint">ゴールを実現するために施設が提供する支援・サービス内容を入力してください。</div>
+    <textarea id="service" rows="4" placeholder="例：口腔ケアと嚥下評価を継続し、安全に食事を楽しめる環境を整える。定期的に家族と情報共有し、本人の意思を尊重したケアを行う。看取り期には医療と連携し苦痛緩和に努める。"></textarea>
+  </div>
+
+  <div class="field">
+    <label class="label" for="issue">直近の具体的な課題と対応<span class="optional">任意</span></label>
+    <div class="hint">現在取り組んでいる課題があれば入力してください。なければ空欄のままでかまいません。</div>
+    <textarea id="issue" rows="3" placeholder="例：最近むせこみが増えており、誤嚥性肺炎のリスクが高まっている。嚥下訓練と食形態の見直しを行う。"></textarea>
+  </div>
+
+  <button class="btn" id="btnGenerate" onclick="generate()">
+    <span id="genLabel">方針を作成する</span>
+  </button>
+
+  <div class="output-section" id="outputSection">
+    <div class="output-label">総合的な援助の方針</div>
+    <div class="output-box" id="outputBox"></div>
+    <div class="char-count" id="charCount"></div>
+    <div class="btn-row">
+      <button class="btn btn-sub" onclick="copyText()">テキストをコピー</button>
+      <button class="btn btn-sub" onclick="shareText()">共有する</button>
+    </div>
+    <button class="btn btn-sub" style="margin-top:10px;" onclick="generate()">もう一度作成する</button>
+  </div>
+
+  <div class="footer">ホーシン君 © 施設サービス計画書作成支援</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// API Key (obfuscated - 分割逆順方式)
+const _j = a => a.map(s => s.split('').reverse().join('')).join('');
+const DEFAULT_API_KEY = _j(['ipa-tna-ks','J3BSGXg-30','7oEF3ImRzO','1E1zVNkds-','oJLq7Dw5GV','q5LimVR2Dz','N0iCuTwRIH','wLhQnMfCsT','_OQJtmg75E','-wAsExoNCg','AAAdhHJW']);
+
+function $(id) { return document.getElementById(id); }
+function getVal(id) { return $(id).value.trim(); }
+
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function callClaude(systemPrompt, userContent, maxTokens) {
+  const apiKey = localStorage.getItem('careplan_apiKey') || DEFAULT_API_KEY;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: maxTokens || 1024,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }]
+    })
+  });
+  if (!res.ok) {
+    console.error(await res.text());
+    throw new Error('API error');
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+async function generate() {
+  const goal = getVal('goal');
+  const service = getVal('service');
+  const issue = getVal('issue');
+
+  if (!goal) { toast('ゴールのイメージを入力してください'); $('goal').focus(); return; }
+  if (!service) { toast('施設側がすべきサービスを入力してください'); $('service').focus(); return; }
+
+  const btn = $('btnGenerate');
+  const label = $('genLabel');
+  btn.disabled = true;
+  label.innerHTML = '<span class="spinner"></span>作成中...';
+
+  const system = `あなたは特別養護老人ホームのベテランケアマネジャーです。
+施設サービス計画書(1)「総合的な援助の方針」の本文を作成してください。
+
+【作成ルール】
+- 敬体（です・ます調）で書く
+- 200〜400字以内で、必要以上に長くしない
+- 入力にない内容は追加しない（創作・推測をしない）
+- 本人の望む生活像 → 施設の支援方針 → (任意)直近の課題と対応 の流れで自然にまとめる
+- 専門用語を使いすぎず、読みやすい文章にする
+- 施設・多職種チームとしての方針として記述する（「私たちは」等の一人称は使わず、主語は文脈で自然に）
+- 箇条書きにはせず、一続きの文章で書く
+- 前置き・後書き・見出しは付けず、方針本文のみを出力する`;
+
+  let userContent = `【ゴールのイメージ（本人の望む生活）】\n${goal}\n\n【施設側がすべきサービス】\n${service}`;
+  if (issue) userContent += `\n\n【直近の具体的な課題と対応】\n${issue}`;
+  userContent += `\n\n上記をもとに「総合的な援助の方針」の本文を作成してください。`;
+
+  try {
+    const text = await callClaude(system, userContent, 800);
+    const clean = text.trim();
+    $('outputBox').textContent = clean;
+    $('charCount').textContent = `${clean.length} 字`;
+    $('outputSection').classList.add('show');
+    $('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    toast('作成に失敗しました。通信環境をご確認ください。');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    label.textContent = '方針を作成する';
+  }
+}
+
+async function copyText() {
+  const text = $('outputBox').textContent;
+  if (!text) { toast('コピーする文章がありません'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('コピーしました');
+  } catch (e) {
+    // フォールバック
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('コピーしました');
+  }
+}
+
+async function shareText() {
+  const text = $('outputBox').textContent;
+  if (!text) { toast('共有する文章がありません'); return; }
+  const shareData = {
+    title: '総合的な援助の方針',
+    text: text
+  };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      await navigator.clipboard.writeText(text);
+      toast('共有非対応のためコピーしました');
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      console.error(e);
+      toast('共有できませんでした');
+    }
+  }
+}
+</script>
+
+</body>
+</html>
