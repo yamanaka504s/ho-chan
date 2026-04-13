@@ -110,6 +110,99 @@
     margin-top: 10px;
   }
   .btn-row .btn { margin-top: 0; }
+  .refine-section {
+    margin-top: 18px;
+    padding: 14px;
+    background: #f4f9fb;
+    border-radius: 10px;
+    border: 1px solid #dfeef2;
+  }
+  .refine-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #2e7d8f;
+    margin-bottom: 10px;
+  }
+  .refine-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .refine-btn {
+    background: #fff;
+    color: #2e7d8f;
+    border: 1.5px solid #9fc5cf;
+    border-radius: 8px;
+    padding: 10px 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .refine-btn:hover:not(:disabled) {
+    background: #2e7d8f;
+    color: #fff;
+    border-color: #2e7d8f;
+  }
+  .refine-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .chat-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .chat-input {
+    flex: 1;
+    border: 1.5px solid #cddee4;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.92rem;
+    font-family: inherit;
+    resize: none;
+    background: #fff;
+    min-height: 40px;
+    max-height: 120px;
+  }
+  .chat-input:focus {
+    outline: none;
+    border-color: #2e7d8f;
+  }
+  .chat-send {
+    background: #2e7d8f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 0 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .chat-send:hover:not(:disabled) { background: #246876; }
+  .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+  .chat-hint {
+    font-size: 0.78rem;
+    color: #7a8a96;
+    margin-top: 6px;
+  }
+  .refining {
+    text-align: center;
+    color: #2e7d8f;
+    font-size: 0.88rem;
+    padding: 8px;
+  }
+  .spinner-sm {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(46,125,143,0.2);
+    border-top-color: #2e7d8f;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
   .output-section {
     margin-top: 28px;
     padding-top: 24px;
@@ -208,11 +301,30 @@
     <div class="output-label">総合的な援助の方針</div>
     <div class="output-box" id="outputBox"></div>
     <div class="char-count" id="charCount"></div>
+    <div class="refining" id="refining" style="display:none;">
+      <span class="spinner-sm"></span>書き直し中...
+    </div>
+
+    <div class="refine-section">
+      <div class="refine-title">文章を改善する</div>
+      <div class="refine-grid">
+        <button class="refine-btn" onclick="refineByPreset('short')">もっと短く</button>
+        <button class="refine-btn" onclick="refineByPreset('simple')">もっとシンプルに</button>
+        <button class="refine-btn" onclick="refineByPreset('kind')">もっと言葉に配慮して</button>
+        <button class="refine-btn" onclick="refineByPreset('angle')">異なる角度で</button>
+      </div>
+      <div class="chat-wrap">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="例：主治医との連携についても触れて"></textarea>
+        <button class="chat-send" id="chatSend" onclick="refineByChat()">送信</button>
+      </div>
+      <div class="chat-hint">自由に改善指示を入力できます（Enterで送信、Shift+Enterで改行）</div>
+    </div>
+
     <div class="btn-row">
       <button class="btn btn-sub" onclick="copyText()">テキストをコピー</button>
       <button class="btn btn-sub" onclick="shareText()">共有する</button>
     </div>
-    <button class="btn btn-sub" style="margin-top:10px;" onclick="generate()">もう一度作成する</button>
+    <button class="btn btn-sub" style="margin-top:10px;" onclick="generate()">最初から作成し直す</button>
   </div>
 
   <div class="footer">ホーシン君 © 施設サービス計画書作成支援</div>
@@ -227,6 +339,9 @@ const DEFAULT_API_KEY = _j(['ipa-tna-ks','J3BSGXg-30','7oEF3ImRzO','1E1zVNkds-',
 
 function $(id) { return document.getElementById(id); }
 function getVal(id) { return $(id).value.trim(); }
+
+// 直近の入力を保持（改善時に元入力を参照するため）
+let lastInputs = { goal: '', service: '', issue: '' };
 
 function toast(msg) {
   const t = $('toast');
@@ -294,6 +409,7 @@ async function generate() {
     const clean = text.trim();
     $('outputBox').textContent = clean;
     $('charCount').textContent = `${clean.length} 字`;
+    lastInputs = { goal, service, issue };
     $('outputSection').classList.add('show');
     $('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) {
@@ -304,6 +420,87 @@ async function generate() {
     label.textContent = '方針を作成する';
   }
 }
+
+// ── 改善機能 ──
+const REFINE_PRESETS = {
+  short: 'もっと短く、要点だけに絞ってください。冗長な表現や重複を削ってください。',
+  simple: 'もっとシンプルで読みやすい文章にしてください。専門用語や硬い言い回しを避け、やさしい言葉に置き換えてください。',
+  kind: '本人やご家族が読んでも温かく感じる、配慮ある言葉遣いに書き直してください。尊厳を大切にする表現を選んでください。',
+  angle: '今までとは異なる視点・構成で書き直してください。切り口や文の順序を変えて、新しい表現にしてください。'
+};
+
+function setRefining(on) {
+  $('refining').style.display = on ? 'block' : 'none';
+  document.querySelectorAll('.refine-btn').forEach(b => b.disabled = on);
+  $('chatSend').disabled = on;
+  $('chatInput').disabled = on;
+}
+
+async function refine(instruction) {
+  const current = $('outputBox').textContent.trim();
+  if (!current) { toast('先に方針を作成してください'); return; }
+  if (!instruction) return;
+
+  setRefining(true);
+
+  const system = `あなたは特別養護老人ホームのベテランケアマネジャーです。
+施設サービス計画書(1)「総合的な援助の方針」の本文を、指示に従って書き直してください。
+
+【ルール】
+- 敬体（です・ます調）を保つ
+- 元の入力情報にない内容を新たに追加しない（創作・推測をしない）
+- 200〜400字以内に収める（指示で「短く」と言われた場合は200字未満でも可）
+- 「私たちは」等の一人称は使わない
+- 箇条書きにはせず一続きの文章で書く
+- 前置き・後書き・見出しは付けず、方針本文のみを出力する`;
+
+  let userContent = `【元の入力情報】\n`;
+  userContent += `ゴールのイメージ：${lastInputs.goal}\n`;
+  userContent += `施設側のサービス：${lastInputs.service}\n`;
+  if (lastInputs.issue) userContent += `直近の課題と対応：${lastInputs.issue}\n`;
+  userContent += `\n【現在の文章】\n${current}\n\n`;
+  userContent += `【改善指示】\n${instruction}\n\n`;
+  userContent += `上記指示に従って書き直した本文のみを出力してください。`;
+
+  try {
+    const text = await callClaude(system, userContent, 800);
+    const clean = text.trim();
+    $('outputBox').textContent = clean;
+    $('charCount').textContent = `${clean.length} 字`;
+    $('outputBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (e) {
+    toast('書き直しに失敗しました。通信環境をご確認ください。');
+    console.error(e);
+  } finally {
+    setRefining(false);
+  }
+}
+
+function refineByPreset(kind) {
+  const instruction = REFINE_PRESETS[kind];
+  if (instruction) refine(instruction);
+}
+
+async function refineByChat() {
+  const input = $('chatInput');
+  const instruction = input.value.trim();
+  if (!instruction) { toast('指示を入力してください'); input.focus(); return; }
+  await refine(instruction);
+  input.value = '';
+}
+
+// Enter送信（Shift+Enterで改行）
+document.addEventListener('DOMContentLoaded', () => {
+  const ci = $('chatInput');
+  if (ci) {
+    ci.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        refineByChat();
+      }
+    });
+  }
+});
 
 async function copyText() {
   const text = $('outputBox').textContent;
