@@ -293,6 +293,12 @@
     <textarea id="issue" rows="3" placeholder="例：最近むせこみが増えており、誤嚥性肺炎のリスクが高まっている。嚥下訓練と食形態の見直しを行う。"></textarea>
   </div>
 
+  <div class="field">
+    <label class="label" for="other">その他 気になること<span class="optional">任意</span></label>
+    <div class="hint">本人の趣味や特技、家族の意向、他入居者との関係、医療的なことなど、気になることがあれば教えてください。</div>
+    <textarea id="other" rows="3" placeholder="例：園芸が趣味。家族は週1回面会に来られ、本人の意思を尊重したいと希望。糖尿病があり内科受診を継続中。"></textarea>
+  </div>
+
   <button class="btn" id="btnGenerate" onclick="generate()">
     <span id="genLabel">方針を作成する</span>
   </button>
@@ -341,7 +347,7 @@ function $(id) { return document.getElementById(id); }
 function getVal(id) { return $(id).value.trim(); }
 
 // 直近の入力を保持（改善時に元入力を参照するため）
-let lastInputs = { goal: '', service: '', issue: '' };
+let lastInputs = { goal: '', service: '', issue: '', other: '' };
 
 function toast(msg) {
   const t = $('toast');
@@ -378,6 +384,7 @@ async function generate() {
   const goal = getVal('goal');
   const service = getVal('service');
   const issue = getVal('issue');
+  const other = getVal('other');
 
   if (!goal) { toast('ゴールのイメージを入力してください'); $('goal').focus(); return; }
   if (!service) { toast('施設側がすべきサービスを入力してください'); $('service').focus(); return; }
@@ -394,7 +401,8 @@ async function generate() {
 - 敬体（です・ます調）で書く
 - 200〜400字以内で、必要以上に長くしない
 - 入力にない内容は追加しない（創作・推測をしない）
-- 本人の望む生活像 → 施設の支援方針 → (任意)直近の課題と対応 の流れで自然にまとめる
+- 本人の望む生活像 → 施設の支援方針 → (任意)直近の課題と対応 → (任意)その他の配慮事項 の流れで自然にまとめる
+- 「その他 気になること」の内容は方針に関連する範囲で適切に織り込む（無理に全てを含めなくてよい）
 - 専門用語を使いすぎず、読みやすい文章にする
 - 施設・多職種チームとしての方針として記述する（「私たちは」等の一人称は使わず、主語は文脈で自然に）
 - 箇条書きにはせず、一続きの文章で書く
@@ -402,6 +410,7 @@ async function generate() {
 
   let userContent = `【ゴールのイメージ（本人の望む生活）】\n${goal}\n\n【施設側がすべきサービス】\n${service}`;
   if (issue) userContent += `\n\n【直近の具体的な課題と対応】\n${issue}`;
+  if (other) userContent += `\n\n【その他 気になること】\n${other}`;
   userContent += `\n\n上記をもとに「総合的な援助の方針」の本文を作成してください。`;
 
   try {
@@ -409,7 +418,7 @@ async function generate() {
     const clean = text.trim();
     $('outputBox').textContent = clean;
     $('charCount').textContent = `${clean.length} 字`;
-    lastInputs = { goal, service, issue };
+    lastInputs = { goal, service, issue, other };
     $('outputSection').classList.add('show');
     $('outputSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
   } catch (e) {
@@ -458,6 +467,7 @@ async function refine(instruction) {
   userContent += `ゴールのイメージ：${lastInputs.goal}\n`;
   userContent += `施設側のサービス：${lastInputs.service}\n`;
   if (lastInputs.issue) userContent += `直近の課題と対応：${lastInputs.issue}\n`;
+  if (lastInputs.other) userContent += `その他 気になること：${lastInputs.other}\n`;
   userContent += `\n【現在の文章】\n${current}\n\n`;
   userContent += `【改善指示】\n${instruction}\n\n`;
   userContent += `上記指示に従って書き直した本文のみを出力してください。`;
